@@ -11,7 +11,7 @@ WIDTH, HEIGHT = 800, 600
 BALL_RADIUS = 10
 PADDLE_WIDTH = 100
 PADDLE_HEIGHT = 20
-COUNTDOWN_TIME = 5 # 5 seconds countdown
+COUNTDOWN_TIME = 5  # 5 seconds countdown
 
 class Ball:
     def __init__(self):
@@ -24,10 +24,13 @@ class Ball:
         self.x += self.speed_x
         self.y += self.speed_y
 
-    def check_collision(self):
+    def check_collision(self, paddle):
         if self.x <= BALL_RADIUS or self.x >= WIDTH - BALL_RADIUS:
             self.speed_x = -self.speed_x
-        if self.y <= BALL_RADIUS:
+        if self.y <= BALL_RADIUS or self.y >= HEIGHT - BALL_RADIUS:
+            self.speed_y = -self.speed_y
+        # Check for collision with the paddle
+        if self.y >= HEIGHT - BALL_RADIUS - PADDLE_HEIGHT and paddle.x <= self.x <= paddle.x + PADDLE_WIDTH:
             self.speed_y = -self.speed_y
 
 class Paddle:
@@ -51,21 +54,20 @@ class Game:
         self.font = pygame.font.Font(None, 36)
         self.game_over = False
         self.start_time = time.time()
-    
+
     def countdown_timer(self, screen):
-        if self.start_time is None:
-            self.start_time = time.time()
         countdown = max(COUNTDOWN_TIME - int(time.time() - self.start_time), 0)
-        if countdown == 0:
-            self.start_time = None  # Reset the timer
-        else:
+        if countdown > 0:
             font = pygame.font.Font(None, 72)
             text = font.render(str(countdown), True, WHITE)
             text_rect = text.get_rect(center=(WIDTH // 2, HEIGHT // 2))
+            screen.fill(BLACK)
             screen.blit(text, text_rect)
             pygame.display.flip()
             time.sleep(1)
-        
+        else:
+            self.start_time = None  # End the countdown
+
     def handle_events(self):
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -73,14 +75,7 @@ class Game:
 
     def update(self):
         self.ball.move()
-        self.ball.check_collision()
-        if self.ball.y >= HEIGHT - BALL_RADIUS - PADDLE_HEIGHT:
-            if self.paddle.x <= self.ball.x <= self.paddle.x + PADDLE_WIDTH:
-                self.ball.y = HEIGHT - BALL_RADIUS - PADDLE_HEIGHT - 1
-                self.ball.speed_y = -self.ball.speed_y
-                self.score += 1
-            else:
-                self.game_over = True
+        self.ball.check_collision(self.paddle)
 
     def draw(self, screen):
         screen.fill(BLACK)
@@ -100,12 +95,11 @@ def main():
     pygame.display.set_caption("Ping Pong")
     clock = pygame.time.Clock()
     game = Game()
-    
-    # Start the countdown timer before the game loop starts
-    for _ in range(COUNTDOWN_TIME):
+
+    # Countdown before the game starts
+    while game.start_time and not game.game_over:
         game.countdown_timer(screen)
-        screen.fill(BLACK)  # Clear the screen after each countdown number
-    
+
     while not game.game_over:
         game.handle_events()
         keys = pygame.key.get_pressed()
@@ -121,5 +115,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
-
